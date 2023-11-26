@@ -1,13 +1,15 @@
 from __future__ import annotations
+from enum import IntEnum
 from typing import Any, Iterable, SupportsFloat, TypeVar
 
-from minigrid.core.constants import COLOR_NAMES
+from minigrid.core.constants import COLOR_NAMES, TILE_PIXELS
 from minigrid.core.grid import Grid
 from minigrid.core.mission import MissionSpace
 from minigrid.core.world_object import *
-from minigrid.manual_control import ManualControl
 from minigrid.core.actions import Actions
+from minigrid.manual_control import ManualControl
 from minigrid.minigrid_env import MiniGridEnv
+from gymnasium import spaces
 from gymnasium.core import ActType, ObsType
 
 from random import randint
@@ -15,10 +17,18 @@ from math import sqrt, ceil
 import numpy as np
 
 
+class CustomActions(IntEnum):
+    # custom actions: left, right, up, down
+    left = 0
+    right = 1
+    up = 2
+    down = 3
+    
+    
 # Monkey patching the key_handler for custom moves
 def key_handler(self, event):
     key: str = event.key
-    print("pressed", key)
+    # print("pressed", key)
 
     if key == "escape":
         self.env.close()
@@ -28,30 +38,49 @@ def key_handler(self, event):
         return
 
     key_to_action = {
-        "left": Actions.left,
-        "right": Actions.right,
-        "up": Actions.up,
-        "down": Actions.down,
-        "enter": Actions.done,
+        "left": CustomActions.left,
+        "right": CustomActions.right,
+        "up": CustomActions.up,
+        "down": CustomActions.down,
     }
     if key in key_to_action.keys():
         action = key_to_action[key]
         self.step(action)
-    else:
-        print(key)
+    # else:
+        # print(key)
+        
         
 ManualControl.key_handler = key_handler
-            
+        
             
 class SimpleEnv(MiniGridEnv):
     def __init__(
         self,
+        mission_space: MissionSpace,
         size=20,
         agent_start_pos=(1, 1),
         agent_start_dir=0,
         max_steps: int | None = None,
+        grid_size: int | None = None,
+        width: int | None = None,
+        height: int | None = None,
+        see_through_walls: bool = False,
+        agent_view_size: int = 1,
+        render_mode: str | None = None,
+        screen_size: int | None = 640,
+        highlight: bool = True,
+        tile_size: int = TILE_PIXELS,
+        agent_pov: bool = False,
         **kwargs,
     ):
+        mission_space = MissionSpace(mission_func=self._gen_mission)
+        self.step_count = 0
+
+        if max_steps is None:
+            max_steps = 4 * size**2
+
+        width = size
+        height = size 
         # Set the initial parameters
         self.agent_start_pos = agent_start_pos
         self.agent_start_dir = agent_start_dir
@@ -65,24 +94,84 @@ class SimpleEnv(MiniGridEnv):
         if max_steps is None:
             max_steps = 4 * size**2
 
-        super().__init__(
-            mission_space=mission_space,
-            grid_size=size,
-            agent_view_size=1, 
-            max_steps=max_steps,
-            **kwargs,
+        # Initialize mission
+        self.mission = mission_space.sample()
+
+        # Can't set both grid_size and width/height
+        if grid_size:
+            assert width is None and height is None
+            width = grid_size
+            height = grid_size
+        assert width is not None and height is not None
+
+        # Action enumeration for this environment
+        self.actions = CustomActions
+
+        # Actions are discrete integer values
+        self.action_space = spaces.Discrete(len(self.actions))
+
+        # Number of cells (width and height) in the agent view
+        assert agent_view_size % 2 == 1
+        assert agent_view_size >= 0
+        self.agent_view_size = agent_view_size
+
+        # Observations are dictionaries containing an
+        # encoding of the grid and a textual 'mission' string
+        image_observation_space = spaces.Box(
+            low=0,
+            high=255,
+            shape=(self.agent_view_size, self.agent_view_size, 3),
+            dtype="uint8",
         )
+        self.observation_space = spaces.Dict(
+            {
+                "image": image_observation_space,
+                "direction": spaces.Discrete(4),
+                "mission": mission_space,
+            }
+        )
+
+        # Range of possible rewards
+        self.reward_range = (0, 1)
+
+        # Environment configuration
+        self.width = width
+        self.height = height
+
+        assert isinstance(
+            max_steps, int
+        ), f"The argument max_steps must be an integer, got: {type(max_steps)}"
+        self.max_steps = 1000000
+
+        self.see_through_walls = False
+
+        # Current position and direction of the agent
+        self.agent_pos: np.ndarray | tuple[int, int] = None
+        self.agent_dir: int = None
+
+        # Rendering attributes
+        self.screen_size = screen_size
+        self.render_size = None
+        self.window = None
+        self.clock = None
+        
+        self.render_mode = render_mode
+        self.highlight = highlight
+        self.tile_size = tile_size
+        self.agent_pov = agent_pov
 
     @staticmethod
     def _gen_mission():
         return "grand mission"
       
+      
     def step(
-        self, action: ActType
+        self, action: int
     ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         self.step_count += 1
         
         current_pos = self.agent_pos
+        print(current_pos)
         x = current_pos[0]
         y = current_pos[1]
 
@@ -97,7 +186,7 @@ class SimpleEnv(MiniGridEnv):
         fwd_cell = self.grid.get(*fwd_pos)
 
         # Rotate left
-        if action == self.actions.left:
+        if action == self.actions.left.value:
             fwd_pos = (x-1, y)
             
             # Get the contents of the cell in front of the agent
@@ -111,7 +200,7 @@ class SimpleEnv(MiniGridEnv):
                 terminated = True
 
         # Rotate right
-        elif action == self.actions.right:
+        elif action == self.actions.right.value:
             fwd_pos = (x+1, y)
             fwd_cell = self.grid.get(*fwd_pos)
             
@@ -123,7 +212,7 @@ class SimpleEnv(MiniGridEnv):
                 terminated = True
 
         # Move forward
-        elif action == self.actions.up:
+        elif action == self.actions.up.value:
             fwd_pos = (x, y-1)
             fwd_cell = self.grid.get(*fwd_pos)
             
@@ -135,7 +224,7 @@ class SimpleEnv(MiniGridEnv):
                 terminated = True
 
         # Pick up an object
-        elif action == self.actions.down:
+        elif action == self.actions.down.value:
             fwd_pos = (x, y+1)
             fwd_cell = self.grid.get(*fwd_pos)
             
@@ -159,10 +248,10 @@ class SimpleEnv(MiniGridEnv):
         if self.render_mode == "human":
             self.render()
 
-        obs = self.gen_obs()
+        obs = self.agent_pos
         self.reward = reward
 
-        return obs, reward, terminated, truncated, {}
+        return obs, reward, terminated, truncated
 
     
     def _place_objs(self, width, height):
@@ -315,13 +404,13 @@ class SimpleEnv(MiniGridEnv):
         return 0
     
     
-def main():
-    env = SimpleEnv(render_mode="human")
+# def main():
+#     env = SimpleEnv(render_mode="human", mission_space="grand mission")
 
     # enable manual control for testing
-    manual_control = ManualControl(env, seed=42)
-    manual_control.start()
+    # manual_control = ManualControl(env, seed=42)
+    # manual_control.start()
 
     
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
