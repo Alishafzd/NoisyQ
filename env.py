@@ -65,7 +65,7 @@ class SimpleEnv(MiniGridEnv):
         width: int | None = None,
         height: int | None = None,
         see_through_walls: bool = False,
-        agent_view_size: int = 1,
+        agent_view_size: int = 3,
         render_mode: str = "human",
         screen_size: int | None = 640,
         highlight: bool = True,
