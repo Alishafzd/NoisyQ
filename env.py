@@ -71,6 +71,7 @@ class SimpleEnv(MiniGridEnv):
         highlight: bool = True,
         tile_size: int = TILE_PIXELS,
         agent_pov: bool = False,
+        display = False,
         **kwargs,
     ):
         mission_space = MissionSpace(mission_func=self._gen_mission)
@@ -149,16 +150,17 @@ class SimpleEnv(MiniGridEnv):
         self.agent_pos: np.ndarray | tuple[int, int] = None
         self.agent_dir: int = None
 
-        # Rendering attributes
-        self.screen_size = screen_size
-        self.render_size = None
-        self.window = None
-        self.clock = None
-        
-        self.render_mode = render_mode
-        self.highlight = highlight
-        self.tile_size = tile_size
-        self.agent_pov = agent_pov
+        # Rendering attributes 
+        if display:
+            self.screen_size = screen_size
+            self.render_size = None
+            self.window = None
+            self.clock = None
+            
+            self.render_mode = render_mode
+            self.highlight = highlight
+            self.tile_size = tile_size
+            self.agent_pov = agent_pov
 
     @staticmethod
     def _gen_mission():
@@ -171,7 +173,6 @@ class SimpleEnv(MiniGridEnv):
         self.step_count += 1
         
         current_pos = self.agent_pos
-        print(current_pos)
         x = current_pos[0]
         y = current_pos[1]
 
@@ -211,7 +212,7 @@ class SimpleEnv(MiniGridEnv):
             if fwd_cell is not None and fwd_cell.type == "lava":
                 terminated = True
 
-        # Move forward
+        # Move up
         elif action == self.actions.up.value:
             fwd_pos = (x, y-1)
             fwd_cell = self.grid.get(*fwd_pos)
@@ -223,7 +224,7 @@ class SimpleEnv(MiniGridEnv):
             if fwd_cell is not None and fwd_cell.type == "lava":
                 terminated = True
 
-        # Pick up an object
+        # Move down
         elif action == self.actions.down.value:
             fwd_pos = (x, y+1)
             fwd_cell = self.grid.get(*fwd_pos)
@@ -255,7 +256,10 @@ class SimpleEnv(MiniGridEnv):
 
     
     def _place_objs(self, width, height):
-        
+        """
+        Randomly picks goals and walls cells and stores them in allocated parameters. Later, we use the cell coordinates found 
+        here to generate the Walls and Goals as many times as the algorithm takes to finish
+        """
         self.goals = []
         self.walls = []
         
@@ -378,6 +382,9 @@ class SimpleEnv(MiniGridEnv):
            
     
     def has_path(self, point, width, height):
+        """
+        Fills out a table of the size of the environment. The table shows for each cell if there is a path from the cell to the start point.
+        """
         x = point[0]
         y = point[1]
         
