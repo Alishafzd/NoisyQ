@@ -56,17 +56,17 @@ ManualControl.key_handler = key_handler
 class SimpleEnv(MiniGridEnv):
     def __init__(
         self,
-        mission_space: MissionSpace,
-        size=20,
-        agent_start_pos=(1, 1),
-        agent_start_dir=0,
+        mission_space: MissionSpace = "grand mission",
+        size = 20,
+        agent_start_pos = (1, 1),
+        agent_start_dir = 0,
         max_steps: int | None = None,
         grid_size: int | None = None,
         width: int | None = None,
         height: int | None = None,
         see_through_walls: bool = False,
         agent_view_size: int = 1,
-        render_mode: str | None = None,
+        render_mode: str = "human",
         screen_size: int | None = 640,
         highlight: bool = True,
         tile_size: int = TILE_PIXELS,
@@ -379,6 +379,11 @@ class SimpleEnv(MiniGridEnv):
             self.place_agent()
 
         self.mission = "grand mission"
+        
+    def reset(self):
+        super().reset()
+        
+        return self.agent_pos
            
     
     def has_path(self, point, width, height):
@@ -412,7 +417,11 @@ class SimpleEnv(MiniGridEnv):
     
     
 # def main():
-#     env = SimpleEnv(render_mode="human", mission_space="grand mission")
+#     env = SimpleEnv(display=True)
+#     print(env.reset())
+#     while True:
+#         action = env.action_space.sample()
+#         new_obs, rew, done, _ = env.step(action)
 
     # enable manual control for testing
     # manual_control = ManualControl(env, seed=42)
