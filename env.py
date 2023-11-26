@@ -176,7 +176,7 @@ class SimpleEnv(MiniGridEnv):
         x = current_pos[0]
         y = current_pos[1]
 
-        reward = self.reward - 1
+        reward = -1
         terminated = False
         truncated = False
 
