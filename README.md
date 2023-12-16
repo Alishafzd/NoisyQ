@@ -11,4 +11,4 @@ The figure below shows the heat map of the coverage matrix for each method, alon
 
 <img src="https://github.com/Alishafzd/NoisyQ/blob/main/results/heat_maps.png" alt="Heat maps comparison" width="300" class="center">
 
-However, the "episodes-per-step" results reveals that noisyq models cannot converged due to the local minimum problem.
+However, the "episodes-per-step" results reveals that noisyq models cannot converged due to the local minimum problem. The full analysis and methodology explanation can be found in the "Project report.pdf" file.
