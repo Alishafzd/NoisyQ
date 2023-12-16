@@ -9,7 +9,7 @@ The code for this project is written in Python and uses PyTorch as the deep lear
 # Results
 The results of this project are presented in two figures. The first figure shows the heat map of the coverage matrix for each method, along with the entropy values. The coverage matrix measures how well the agent explores the state space, and the entropy quantifies the diversity of the agent’s behavior. The figure demonstrates that noisyq models outperform the baselines in terms of exploration, especially at the first two checkpoints.
 
-<img src=“https://github.com/Alishafzd/NoisyQ/results/heat_maps.png” width=“100” height=“100” align="center"> Heat maps comparisons
+<img src=“https://github.com/Alishafzd/NoisyQ/results/heat_maps.png” width=“100” height=“100” align="center" alt="test"> Heat maps comparisons
 
 The second figure shows the episodes per step for each method. The episodes per step reflects the efficiency of the agent’s learning. The figure reveals that noisyq models have not converged due to the local minimum problem!
 
