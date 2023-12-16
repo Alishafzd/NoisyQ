@@ -13,5 +13,5 @@ The results of this project are presented in two figures. The first figure shows
 
 The second figure shows the episodes per step for each method. The episodes per step reflects the efficiency of the agent’s learning. The figure reveals that noisyq models have not converged due to the local minimum problem!
 
-<img src=“https://github.com/Alishafzd/NoisyQ/results/episodes.png” width=“100” height=“100” align="center"> Episodes per step for different methods. The constant tangent of the line indicates convergence.
+![Episodes per step for different methods. The constant tangent of the line ](https://github.com/Alishafzd/NoisyQ/blob/main/results/episodes.png | width=100)
 
